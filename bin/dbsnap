@@ -1,0 +1,58 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+
+SCRIPT_PATH = begin
+  script_path = __FILE__
+  
+  count = 0
+
+  while (File.lstat(script_path).symlink?)
+    script_path = File.readlink(script_path)
+    
+    count += 1
+    break if (count > 100)
+  end
+  
+  script_path
+end
+
+$LOAD_PATH << File.expand_path(File.join('..', 'lib'), File.dirname(SCRIPT_PATH))
+
+require 'dbsnap'
+
+# == Main ==================================================================
+
+save_to = nil
+restore_from = nil
+snapshot_path = '/tmp'
+
+op = OptionParser.new
+op.on('-a', '--to=s') do |s|
+  save_to = s
+end
+op.on('-r', '--from=s') do |s|
+  restore_from = s
+end
+op.on('-s', '--snapshot-path=s') do |s|
+  snapshot_path = s
+end
+
+args = op.parse(*ARGV)
+
+config = DBSnap::Config.for_project
+
+unless (config)
+  STDERR.puts "Could not locate suitable database.yml configuration"
+  exit(-1)
+end
+
+config.snapshot_path = snapshot_path
+
+connection = DBSnap::Adapter.for_config(config)
+
+connection.tables.each do |table|
+  puts table
+  
+  connection.export_table!(table)
+end

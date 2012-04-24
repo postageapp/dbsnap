@@ -1,0 +1,6 @@
+development:
+  adapter: mysql
+  database: test_database
+  username: example
+  password: example_password
+  socket: /tmp/mysqld.sock
